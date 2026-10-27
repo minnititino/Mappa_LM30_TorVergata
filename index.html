@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Da dove arrivano i fisici</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+:root{
+  color-scheme: dark;
+  --ink:#0a1c26;
+  --panel:#112a3a;
+  --panel-2:#0d2230;
+  --panel-border: rgba(224,235,232,.10);
+  --text:#edf3f0;
+  --text-dim:#a6bcc0;
+  --text-faint:#6f8990;
+  --accent:#ff8159;
+  --prov-roma:#ff8159;
+  --prov-frosinone:#f0b93a;
+  --prov-latina:#53d6c2;
+  --prov-altro:#9aa7d6;
+  --focus:#ffd166;
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'Inter', system-ui, sans-serif;
+  --font-mono:'IBM Plex Mono', 'SF Mono', monospace;
+}
+*{ box-sizing: border-box; }
+html,body{ margin:0; background:var(--ink); color:var(--text); font-family:var(--font-body); }
+body{ padding: 0 16px 48px; font-size: 15px; line-height: 1.5; }
+h1,h2,h3{ font-family:var(--font-display); font-weight:700; margin:0; }
+.mono{ font-family:var(--font-mono); font-variant-numeric: tabular-nums; }
+.wrap{ max-width: 1260px; margin: 0 auto; }
+
+header.hero{ padding-top: 36px; padding-bottom: 8px; }
+.eyebrow{ font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+h1.title{ font-size: clamp(28px, 4.2vw, 44px); line-height: 1.05; }
+h1.title em{ font-style: italic; color: var(--accent); }
+.subtitle{ margin-top: 10px; max-width: 64ch; color: var(--text-dim); font-size: 15.5px; }
+
+.stats-row{ display:flex; flex-wrap:wrap; gap: 14px; margin-top: 26px; }
+.stat{ flex: 1 1 150px; background: var(--panel); border:1px solid var(--panel-border); border-radius: 10px; padding: 14px 16px; }
+.stat .num{ font-family: var(--font-mono); font-size: 26px; font-weight:500; }
+.stat .lbl{ font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+.stat .delta{ font-size: 12px; margin-top: 4px; font-family: var(--font-mono);}
+.delta.up{ color: var(--prov-latina); } .delta.down{ color: var(--accent); }
+
+.controls{ display:flex; align-items:center; gap: 18px; flex-wrap: wrap; margin-top: 30px; padding: 12px 16px; background: var(--panel-2); border: 1px solid var(--panel-border); border-radius: 12px; }
+.ctrl-group{ display:flex; align-items:center; gap:8px; }
+.ctrl-label{ font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); }
+.yeartoggle{ display:flex; background: var(--panel); border-radius: 8px; padding: 3px; gap: 2px; }
+.yeartoggle button{ font-family: var(--font-mono); font-size: 12.5px; border:none; background: transparent; color: var(--text-dim); padding: 6px 12px; border-radius: 6px; cursor:pointer; }
+.yeartoggle button.active{ background: var(--accent); color: #231206; font-weight: 600; }
+.searchbox{ display:flex; align-items:center; gap:6px; background: var(--panel); border:1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px; flex: 1 1 180px; max-width: 260px; }
+.searchbox input{ border:none; background:transparent; outline:none; color: var(--text); font-size: 13.5px; width: 100%; }
+.legend-prov{ display:flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+.legend-item{ display:flex; align-items:center; gap:6px; font-size: 12.5px; color: var(--text-dim); }
+.swatch{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+.mapcard{ background: var(--panel); border:1px solid var(--panel-border); border-radius: 14px; padding: 16px; margin-top: 18px; }
+.mapcard .card-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 10px; gap:8px; flex-wrap:wrap;}
+.mapcard h2{ font-size: 16px; }
+.mapcard .card-sub{ font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
+#map{ width:100%; height: 640px; border-radius: 10px; background:#e9e4d8; }
+@media (max-width: 640px){ #map{ height: 460px; } }
+
+.leaflet-popup-content-wrapper{ background: var(--panel-2); color: var(--text); border-radius: 8px; }
+.leaflet-popup-tip{ background: var(--panel-2); }
+.leaflet-popup-content{ font-family: var(--font-body); font-size: 13px; margin: 10px 12px; }
+.pp-name{ font-family: var(--font-display); font-weight:700; font-size:15px; }
+.pp-row{ color: var(--text-dim); font-family: var(--font-mono); font-size:11.5px; margin-top:3px; }
+.pp-ist{ margin-top:6px; padding-top:6px; border-top:1px solid var(--panel-border); max-height:160px; overflow:auto; }
+.pp-ist div{ font-size:11.5px; display:flex; justify-content:space-between; gap:8px; padding:2px 0; }
+.pp-ist .n{ color: var(--text-faint); font-size:10px; }
+
+.maplegend{ background: rgba(13,34,48,.92); color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 11.5px; line-height:1.6; border:1px solid var(--panel-border); }
+.maplegend .lg-row{ display:flex; align-items:center; gap:6px; }
+.scrollhint{ pointer-events:none; }
+
+.lowergrid{ display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; margin-top:16px; }
+@media (max-width: 880px){ .lowergrid{ grid-template-columns: 1fr; } }
+.card{ background: var(--panel); border:1px solid var(--panel-border); border-radius: 14px; padding: 16px; }
+table.rank{ width:100%; border-collapse: collapse; margin-top:4px;}
+table.rank th{ text-align:left; font-size:11px; text-transform:uppercase; color: var(--text-faint); font-weight:500; padding: 4px 6px; border-bottom: 1px solid var(--panel-border);}
+table.rank td{ padding: 7px 6px; font-size: 13px; border-bottom: 1px solid var(--panel-border); }
+table.rank tr.rowitem{ cursor:pointer; }
+table.rank tr.rowitem:hover td{ background: rgba(255,255,255,.03); }
+table.rank tr.rowitem.selected td{ background: rgba(255,129,89,.10); }
+td.num{ font-family: var(--font-mono); text-align:right; }
+.barcell{ width:90px; }
+.bar-track{ height:7px; background: rgba(255,255,255,.08); border-radius:4px; overflow:hidden;}
+.bar-fill{ height:100%; border-radius:4px; background: var(--accent); }
+.prov-tag{ display:inline-block; font-size:10px; font-family:var(--font-mono); padding:1px 6px; border-radius:20px; margin-left:6px; }
+
+#detail{ min-height: 220px; }
+#detail .empty{ color: var(--text-faint); font-size: 13.5px; padding-top: 30px; text-align:center;}
+#detail .d-head{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;}
+#detail .d-name{ font-family: var(--font-display); font-size: 22px; }
+#detail .d-prov{ font-size:12px; color: var(--text-dim); font-family: var(--font-mono); }
+#detail .d-tot{ display:flex; gap:18px; margin: 10px 0 6px; font-family: var(--font-mono); }
+#detail .d-tot .n{ font-size:20px; } #detail .d-tot .l{ font-size:10.5px; color:var(--text-faint); text-transform:uppercase; }
+table.ist{ width:100%; border-collapse:collapse; margin-top:10px; }
+table.ist th{ text-align:left; font-size:10.5px; text-transform:uppercase; color:var(--text-faint); padding:3px 6px; border-bottom:1px solid var(--panel-border);}
+table.ist td{ padding:5px 6px; font-size:12.5px; border-bottom:1px solid var(--panel-border); }
+table.ist td.tnum{ font-family: var(--font-mono); text-align:right; }
+.ist-type{ font-size:10.5px; color:var(--text-faint); display:block; }
+
+footer{ margin-top: 30px; padding-top:16px; border-top:1px solid var(--panel-border); color: var(--text-faint); font-size:12px; line-height:1.6; }
+footer b{ color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Corso di Laurea in Fisica (L-30) · Università di Roma Tor Vergata</div>
+    <h1 class="title">Da dove arrivano <em>i futuri fisici</em></h1>
+    <p class="subtitle">Istituti secondari di provenienza degli studenti immatricolati al primo anno, confrontando le coorti <span class="mono">2025/26</span> e <span class="mono">2026/27</span>. Ogni cerchio è un comune; la dimensione è proporzionale al numero di immatricolati. Mappa reale — zoom e trascina per esplorare.</p>
+    <div class="stats-row" id="statsRow"></div>
+  </header>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Coorte</span>
+      <div class="yeartoggle" id="yearToggle">
+        <button data-m="y2526">2025/26</button>
+        <button data-m="y2627">2026/27</button>
+        <button data-m="tot" class="active">Totale</button>
+      </div>
+    </div>
+    <div class="searchbox">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-faint)"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Cerca un comune…">
+    </div>
+    <div class="legend-prov" id="legendProv"></div>
+  </div>
+
+  <div class="mapcard">
+    <div class="card-head">
+      <h2>Mappa di provenienza</h2>
+      <span class="card-sub" id="mapSub"></span>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <div class="lowergrid">
+    <div class="card">
+      <div class="card-head"><h2>Classifica comuni</h2><span class="card-sub" id="rankSub"></span></div>
+      <table class="rank">
+        <thead><tr><th>Comune</th><th class="num">25/26</th><th class="num">26/27</th><th class="num">Tot.</th><th></th></tr></thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </div>
+    <div class="card" id="detail"></div>
+  </div>
+
+  <footer>
+    <b>Fonte:</b> elenco immatricolati al CdL in Fisica (L-30), per istituto e comune di provenienza, a.a. 2025/26 e 2026/27 — dati forniti dalla segreteria didattica.
+    <br><b>Mappa:</b> © <a href="https://www.openstreetmap.org/copyright" style="color:inherit">OpenStreetMap</a> contributors.
+    <br><b>Nota metodologica:</b> ogni comune è posizionato sulle coordinate del centro urbano; quando più istituti condividono lo stesso comune i valori sono aggregati. 2 immatricolati (1 nel 25/26, 1 nel 26/27) con comune di provenienza non indicato in archivio non sono rappresentati in mappa.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+function provColor(p){
+  if(p==='Roma') return getComputedStyle(document.documentElement).getPropertyValue('--prov-roma').trim();
+  if(p==='Frosinone') return getComputedStyle(document.documentElement).getPropertyValue('--prov-frosinone').trim();
+  if(p==='Latina') return getComputedStyle(document.documentElement).getPropertyValue('--prov-latina').trim();
+  return getComputedStyle(document.documentElement).getPropertyValue('--prov-altro').trim();
+}
+
+const DEPT = { lat: 41.8542, lon: 12.6177, name: 'Dipartimento di Fisica', sub: 'Tor Vergata e INFN · Via della Ricerca Scientifica, 1 · 00133 Roma' };
+
+let DATA = null, map = null, metric = 'tot', selected = null;
+let markers = {}; // comune -> {marker, circle}
+
+const DATA_EMBEDDED = {"comuni": [{"comune": "ROMA", "lat": 41.9028, "lon": 12.4964, "provincia": "Roma", "y2526": 31, "y2627": 32, "tot": 63, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "EDOARDO AMALDI", "y2526": 4, "y2627": 6}, {"tipo": "LICEO SCIENTIFICO", "nome": "FRANCESCO D'ASSISI", "y2526": 5, "y2627": 2}, {"tipo": "LICEO SCIENTIFICO", "nome": "GULLACE TALOTTA", "y2526": 3, "y2627": 4}, {"tipo": "ISTITUTO SUPERIORE", "nome": "ENZO FERRARI - HERTZ", "y2526": 2, "y2627": 2}, {"tipo": "ISTITUTO SUPERIORE", "nome": "IISS ITC DI VITTORIO-ITI LATTANZIO", "y2526": 1, "y2627": 2}, {"tipo": "LICEO CLASSICO", "nome": "BERTRAND RUSSELL", "y2526": 1, "y2627": 2}, {"tipo": "LICEO SCIENTIFICO", "nome": "NEWTON", "y2526": 1, "y2627": 2}, {"tipo": "ISTITUTO TECNICO COMMERCIALE", "nome": "LUCIO LOMBARDO RADICE", "y2526": 2, "y2627": 0}, {"tipo": "LICEO CLASSICO", "nome": "AUGUSTO", "y2526": 2, "y2627": 0}, {"tipo": "LICEO CLASSICO", "nome": "BENEDETTO DA NORCIA", "y2526": 1, "y2627": 1}, {"tipo": "LICEO SCIENTIFICO", "nome": "TULLIO LEVI-CIVITA D.P.R.", "y2526": 1, "y2627": 1}, {"tipo": "IST  PROF  PER I SERVIZI TURISTICI", "nome": "GIOVANNI FALCONE", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO MAGISTRALE", "nome": "GIORDANO BRUNO", "y2526": 0, "y2627": 1}, {"tipo": "ISTITUTO MAGISTRALE", "nome": "MARGHERITA DI SAVOIA", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO SUPERIORE", "nome": "DE SANCTIS", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO SUPERIORE", "nome": "EINSTEIN - BACHELET", "y2526": 0, "y2627": 1}, {"tipo": "ISTITUTO SUPERIORE", "nome": "GIORGI - WOOLF", "y2526": 0, "y2627": 1}, {"tipo": "ISTITUTO SUPERIORE", "nome": "GIORGIO  AMBROSOLI", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO SUPERIORE", "nome": "ISTITUTO ISTRUZIONE SUPERIORE E. AMALDI", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO TECNICO AERONAUTICO", "nome": "F.DE PINEDO", "y2526": 0, "y2627": 1}, {"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "ARMELLINI", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "G. LATTANZIO", "y2526": 1, "y2627": 0}, {"tipo": "ISTITUTO TECNICO PER IL TURISMO", "nome": "CRISTOFORO COLOMBO", "y2526": 0, "y2627": 1}, {"tipo": "LICEO ARTISTICO", "nome": "LICEO ARTISTICO STATALE \"VIA DI RIPETTA\"", "y2526": 0, "y2627": 1}, {"tipo": "LICEO SCIENTIFICO", "nome": "EVANGELISTA TORRICELLI", "y2526": 0, "y2627": 1}, {"tipo": "LICEO SCIENTIFICO", "nome": "PEANO (ROMA)", "y2526": 1, "y2627": 0}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "DE NICOLA", "y2526": 0, "y2627": 1}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "LICEO LINGUISTICO MARIA AUSILIATRICE", "y2526": 0, "y2627": 1}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "POLIZIANO", "y2526": 0, "y2627": 1}, {"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "ITI GIOVANNI XXIII", "y2526": 0, "y2627": 0}]}, {"comune": "GROTTAFERRATA", "lat": 41.7886, "lon": 12.6756, "provincia": "Roma", "y2526": 4, "y2627": 7, "tot": 11, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "BRUNO TOUSCHEK", "y2526": 4, "y2627": 5}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "LICEO PARITARIO ARTISTICO SAN GIUSEPPE", "y2526": 0, "y2627": 1}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "S.GIUSEPPE", "y2526": 0, "y2627": 1}]}, {"comune": "FRASCATI", "lat": 41.8078, "lon": 12.6789, "provincia": "Roma", "y2526": 3, "y2627": 3, "tot": 6, "ist": [{"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "ENRICO FERMI", "y2526": 1, "y2627": 1}, {"tipo": "LICEO CLASSICO", "nome": "MARCO TULLIO CICERONE", "y2526": 1, "y2627": 1}, {"tipo": "IST TEC COMMERCIALE E PER GEOMETRI", "nome": "MICHELANGELO BUONARROTI", "y2526": 1, "y2627": 0}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "COMPLESSO SCOLASTICO KENNEDY", "y2526": 0, "y2627": 1}]}, {"comune": "ALATRI", "lat": 41.7276, "lon": 13.3453, "provincia": "Frosinone", "y2526": 3, "y2627": 2, "tot": 5, "ist": [{"tipo": "ISTITUTO MAGISTRALE", "nome": "ISTITUTO MAGISTRALE \"PIETROBONO\" ALATRI", "y2526": 2, "y2627": 2}, {"tipo": "ISTITUTO SUPERIORE", "nome": "I.I.S. \"S. PERTINI\" ALATRI", "y2526": 1, "y2627": 0}]}, {"comune": "FROSINONE", "lat": 41.6401, "lon": 13.3416, "provincia": "Frosinone", "y2526": 2, "y2627": 2, "tot": 4, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "I.I.S. \"A. VOLTA\" FROSINONE", "y2526": 0, "y2627": 2}, {"tipo": "LICEO CLASSICO", "nome": "LICEO CLASSICO \"TURRIZIANI\"", "y2526": 1, "y2627": 0}, {"tipo": "LICEO SCIENTIFICO", "nome": "LICEO SCIENTIFICO \"SEVERI\" FROSINONE", "y2526": 1, "y2627": 0}]}, {"comune": "COLLEFERRO", "lat": 41.721, "lon": 13.004, "provincia": "Roma", "y2526": 2, "y2627": 2, "tot": 4, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "LICEO SCIENTIFICO \"GUGLIELMO MARCONI\"", "y2526": 1, "y2627": 1}, {"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "STANISLAO CANNIZZARO COLLEFERRO", "y2526": 0, "y2627": 1}, {"tipo": "SCUOLA SEC. SECONDO GRADO NON STATALE", "nome": "GIOVANNI FALCONE", "y2526": 1, "y2627": 0}]}, {"comune": "ALBANO LAZIALE", "lat": 41.7275, "lon": 12.6599, "provincia": "Roma", "y2526": 1, "y2627": 3, "tot": 4, "ist": [{"tipo": "LICEO CLASSICO", "nome": "UGO FOSCOLO", "y2526": 1, "y2627": 3}]}, {"comune": "CIAMPINO", "lat": 41.8047, "lon": 12.5965, "provincia": "Roma", "y2526": 3, "y2627": 0, "tot": 3, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "VITO VOLTERRA", "y2526": 2, "y2627": 0}, {"tipo": "ISTITUTO D'ARTE", "nome": "LICEO ARTISTICO \"P. MERCURI\" -CIAMPINO", "y2526": 1, "y2627": 0}]}, {"comune": "FERENTINO", "lat": 41.6912, "lon": 13.2514, "provincia": "Frosinone", "y2526": 1, "y2627": 1, "tot": 2, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "I.I.S. \"FILETICO\" FERENTINO", "y2526": 1, "y2627": 1}]}, {"comune": "APRILIA", "lat": 41.5897, "lon": 12.6508, "provincia": "Latina", "y2526": 2, "y2627": 0, "tot": 2, "ist": [{"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "IIS \"C. N. ROSSELLI\" SETTORE TECNOLOGICO", "y2526": 1, "y2627": 0}, {"tipo": "LICEO SCIENTIFICO", "nome": "ANTONIO MEUCCI", "y2526": 1, "y2627": 0}]}, {"comune": "GENZANO DI ROMA", "lat": 41.7, "lon": 12.6872, "provincia": "Roma", "y2526": 1, "y2627": 1, "tot": 2, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "G.VAILATI", "y2526": 1, "y2627": 1}]}, {"comune": "ZAGAROLO", "lat": 41.8464, "lon": 12.8366, "provincia": "Roma", "y2526": 0, "y2627": 2, "tot": 2, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "LICEO SCIENTIFICO VIA COLLE DEI FRATI", "y2526": 0, "y2627": 2}]}, {"comune": "ROSARNO", "lat": 38.4917, "lon": 15.9767, "provincia": "Reggio Calabria (Calabria)", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "\"R. PIRIA\" ROSARNO", "y2526": 1, "y2627": 0}]}, {"comune": "PALESTRINA", "lat": 41.8381, "lon": 12.8942, "provincia": "Roma", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "ELIANO -  LUZZATTI", "y2526": 0, "y2627": 1}]}, {"comune": "CIVITAVECCHIA", "lat": 42.0924, "lon": 11.7958, "provincia": "Roma", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "GUGLIELMO MARCONI", "y2526": 0, "y2627": 1}]}, {"comune": "VEROLI", "lat": 41.6922, "lon": 13.4119, "provincia": "Frosinone", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "I.I.S. \"G. SULPICIO\" VEROLI", "y2526": 1, "y2627": 0}]}, {"comune": "VALMONTONE", "lat": 41.7858, "lon": 12.927, "provincia": "Roma", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "ISTITUTO TECNICO COMMERCIALE", "nome": "ISTITUTO TECNICO \"ENZO GIGLI\"", "y2526": 1, "y2627": 0}]}, {"comune": "LATINA", "lat": 41.4677, "lon": 12.9036, "provincia": "Latina", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "ISTITUTO TECNICO INDUSTRIALE", "nome": "GALILEO GALILEI", "y2526": 1, "y2627": 0}]}, {"comune": "SORA", "lat": 41.7167, "lon": 13.6167, "provincia": "Frosinone", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "ISTITUTO TECNICO PER ATTIVITA' SOCIALI (GIA' ITF)", "nome": "I.T.A.S. DI SORA", "y2526": 1, "y2627": 0}]}, {"comune": "FERMO", "lat": 43.16, "lon": 13.7183, "provincia": "Fermo (Marche)", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO CLASSICO", "nome": "LIC. CL. \"A.CARO\" FERMO", "y2526": 0, "y2627": 1}]}, {"comune": "ANAGNI", "lat": 41.7458, "lon": 13.1522, "provincia": "Frosinone", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "LICEO CLASSICO", "nome": "LICEO CLASSICO \"D. ALIGHIERI\" ANAGNI", "y2526": 1, "y2627": 0}]}, {"comune": "VILLAFRANCA DI VERONA", "lat": 45.3519, "lon": 10.8428, "provincia": "Verona (Veneto)", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "ENRICO MEDI", "y2526": 0, "y2627": 1}]}, {"comune": "CINISELLO BALSAMO", "lat": 45.5553, "lon": 9.2175, "provincia": "Monza e Brianza (Lombardia)", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "G.CASIRAGHI CON SEZ.STAC.L.CLAS", "y2526": 0, "y2627": 1}]}, {"comune": "LANCIANO", "lat": 42.2306, "lon": 14.3886, "provincia": "Chieti (Abruzzo)", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "G.GALILEI DI LANCIANO", "y2526": 1, "y2627": 0}]}, {"comune": "TIVOLI", "lat": 41.9631, "lon": 12.7971, "provincia": "Roma", "y2526": 1, "y2627": 0, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "LAZZARO  SPALLANZANI", "y2526": 1, "y2627": 0}]}, {"comune": "ARPINO", "lat": 41.65, "lon": 13.6083, "provincia": "Frosinone", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "LICEO SCIENTIFICO", "y2526": 0, "y2627": 1}]}, {"comune": "OLEVANO ROMANO", "lat": 41.8625, "lon": 13.0225, "provincia": "Roma", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "RENATO CARTESIO", "y2526": 0, "y2627": 1}]}, {"comune": "SANT'AGATA DE' GOTI", "lat": 41.0875, "lon": 14.4953, "provincia": "Benevento (Campania)", "y2526": 0, "y2627": 1, "tot": 1, "ist": [{"tipo": "LICEO SCIENTIFICO", "nome": "SANT'AGATA DE' GOTI", "y2526": 0, "y2627": 1}]}], "non_indicato": {"y2526": 1, "y2627": 1, "ist": [{"tipo": "ISTITUTO SUPERIORE", "nome": "IIS CORIGLIANO C.  LC-LS", "y2526": 0, "y2627": 1}, {"tipo": "SCUOLA STRANIERA", "nome": "SCUOLA STRANIERA", "y2526": 1, "y2627": 0}]}};
+try {
+  DATA = DATA_EMBEDDED;
+  init();
+} catch(err) {
+  document.getElementById('map').innerHTML = '<p style="padding:20px;color:#b33">Errore nel caricamento dei dati.</p>';
+  console.error(err);
+}
+
+function titleCase(s){ return s.toLowerCase().split(' ').map(w=> w.length>2? w[0].toUpperCase()+w.slice(1):w).join(' '); }
+function maxVal(list, key){ return Math.max(1, ...list.map(d=>d[key])); }
+function radiusScale(v, maxV){ if(v<=0) return 4; return 6 + 34*Math.sqrt(v/maxV); }
+
+function init(){
+  renderStats();
+  renderLegend();
+  initMap();
+  renderRanking();
+  selectComune('ROMA', false);
+}
+
+function initMap(){
+  map = L.map('map', { scrollWheelZoom:false }).setView([41.86, 12.85], 9);
+  map.on('click', ()=> map.scrollWheelZoom.enable());
+  map.getContainer().addEventListener('mouseleave', ()=> map.scrollWheelZoom.disable());
+  const hint = L.control({position:'topright'});
+  hint.onAdd = function(){
+    const div = L.DomUtil.create('div','maplegend scrollhint');
+    div.innerHTML = 'Clicca sulla mappa, poi scorri per zoomare';
+    return div;
+  };
+  hint.addTo(map);
+  map.once('zoomstart dragstart', ()=>{ const h=document.querySelector('.scrollhint'); if(h) h.style.display='none'; });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+  L.control.scale({ imperial:false }).addTo(map);
+
+  const maxV = maxVal(DATA.comuni, metric);
+  DATA.comuni.forEach(d=>{
+    const circle = L.circleMarker([d.lat, d.lon], {
+      radius: radiusScale(d[metric], maxV),
+      color: '#0a1c26', weight: 1.2, fillColor: provColor(d.provincia), fillOpacity: .82
+    }).addTo(map);
+    circle.bindPopup(popupHtml(d));
+    circle.on('click', ()=> selectComune(d.comune, false));
+    markers[d.comune] = circle;
+  });
+
+  const starIcon = L.divIcon({
+    className: '', html: `<svg width="26" height="26" viewBox="0 0 24 24" style="overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"><path d="M12 2l2.5 7.5H22l-6 4.5 2.3 7.3L12 16.8 5.7 21.3 8 14 2 9.5h7.5Z" fill="#ffd166" stroke="#0a1c26" stroke-width="1.2"/></svg>`,
+    iconSize:[26,26], iconAnchor:[13,22]
+  });
+  const deptMarker = L.marker([DEPT.lat, DEPT.lon], { icon: starIcon, zIndexOffset: 1000 }).addTo(map);
+  deptMarker.bindPopup(`<div class="pp-name">★ ${DEPT.name}</div><div class="pp-row">${DEPT.sub}</div>`);
+
+  const legend = L.control({position:'bottomleft'});
+  legend.onAdd = function(){
+    const div = L.DomUtil.create('div','maplegend');
+    div.innerHTML = `
+      <div class="lg-row"><span class="swatch" style="background:${provColor('Roma')}"></span>Provincia di Roma</div>
+      <div class="lg-row"><span class="swatch" style="background:${provColor('Frosinone')}"></span>Provincia di Frosinone</div>
+      <div class="lg-row"><span class="swatch" style="background:${provColor('Latina')}"></span>Provincia di Latina</div>
+      <div class="lg-row"><span class="swatch" style="background:${provColor('Altro')}"></span>Fuori regione</div>
+      <div class="lg-row">★ Dipartimento di Fisica</div>`;
+    return div;
+  };
+  legend.addTo(map);
+
+  document.getElementById('mapSub').textContent = DATA.comuni.length + ' comuni · scorri per ingrandire, trascina per spostarti';
+}
+
+function popupHtml(d){
+  return `<div class="pp-name">${titleCase(d.comune)}</div>
+    <div class="pp-row">${d.provincia}</div>
+    <div class="pp-row">25/26: ${d.y2526} · 26/27: ${d.y2627} · tot ${d.tot}</div>
+    <div class="pp-ist">${d.ist.map(i=>`<div><span>${i.nome}</span><span class="n">${i.y2526}/${i.y2627}</span></div>`).join('')}</div>`;
+}
+
+function renderStats(){
+  const all = DATA.comuni;
+  const tot25 = all.reduce((s,d)=>s+d.y2526,0) + DATA.non_indicato.y2526;
+  const tot26 = all.reduce((s,d)=>s+d.y2627,0) + DATA.non_indicato.y2627;
+  const nIst = all.reduce((s,d)=>s+d.ist.length,0) + DATA.non_indicato.ist.length;
+  const diff = tot26 - tot25;
+  const stats = [
+    {num: tot25+tot26, lbl:'immatricolati totali'},
+    {num: tot25, lbl:'immatricolati 2025/26'},
+    {num: tot26, lbl:'immatricolati 2026/27', delta: diff},
+    {num: all.length, lbl:'comuni di provenienza'},
+    {num: nIst, lbl:'istituti secondari coinvolti'},
+  ];
+  document.getElementById('statsRow').innerHTML = stats.map(s=>`
+    <div class="stat"><div class="num">${s.num}</div><div class="lbl">${s.lbl}</div>
+    ${s.delta!==undefined? `<div class="delta ${s.delta>=0?'up':'down'}">${s.delta>=0?'▲':'▼'} ${s.delta>=0?'+':''}${s.delta} rispetto al 25/26</div>`:''}
+    </div>`).join('');
+}
+
+function renderLegend(){
+  const items = [
+    {c: provColor('Roma'), l:'Provincia di Roma'}, {c: provColor('Frosinone'), l:'Provincia di Frosinone'},
+    {c: provColor('Latina'), l:'Provincia di Latina'}, {c: provColor('Altro'), l:'Fuori regione'},
+  ];
+  document.getElementById('legendProv').innerHTML = items.map(i=>
+    `<span class="legend-item"><span class="swatch" style="background:${i.c}"></span>${i.l}</span>`).join('')
+    + `<span class="legend-item">★ Dipartimento di Fisica</span>`;
+}
+
+function updateRadii(){
+  const maxV = maxVal(DATA.comuni, metric);
+  DATA.comuni.forEach(d=> markers[d.comune].setRadius(radiusScale(d[metric], maxV)));
+}
+
+function selectComune(name, fly){
+  selected = name;
+  Object.entries(markers).forEach(([c, m])=> m.setStyle({ weight: c===name?2.6:1.2, color: c===name? getComputedStyle(document.documentElement).getPropertyValue('--focus').trim() : '#0a1c26' }));
+  document.querySelectorAll('tr.rowitem').forEach(r=> r.classList.toggle('selected', r.dataset.comune===name));
+  renderDetail(name);
+  const d = DATA.comuni.find(x=>x.comune===name);
+  if(d && fly !== false){ map.flyTo([d.lat, d.lon], Math.max(map.getZoom(), 10), {duration:.6}); }
+  if(d) markers[name].openPopup();
+}
+
+function renderDetail(name){
+  const d = DATA.comuni.find(x=>x.comune===name);
+  const box = document.getElementById('detail');
+  if(!d){ box.innerHTML = '<div class="empty">Seleziona un comune sulla mappa o nell’elenco.</div>'; return; }
+  box.innerHTML = `
+    <div class="d-head"><span class="d-name">${titleCase(d.comune)}</span><span class="d-prov">${d.provincia}</span></div>
+    <div class="d-tot"><div><div class="n mono">${d.y2526}</div><div class="l">2025/26</div></div>
+      <div><div class="n mono">${d.y2627}</div><div class="l">2026/27</div></div>
+      <div><div class="n mono">${d.tot}</div><div class="l">totale</div></div></div>
+    <table class="ist"><thead><tr><th>Istituto</th><th class="tnum">25/26</th><th class="tnum">26/27</th></tr></thead>
+      <tbody>${d.ist.map(i=>`<tr><td>${i.nome}<span class="ist-type">${i.tipo}</span></td><td class="tnum">${i.y2526||'—'}</td><td class="tnum">${i.y2627||'—'}</td></tr>`).join('')}</tbody>
+    </table>`;
+}
+
+function renderRanking(){
+  const list = [...DATA.comuni].sort((a,b)=> b[metric]-a[metric] || b.tot-a.tot);
+  const maxV = maxVal(DATA.comuni, metric);
+  document.getElementById('rankBody').innerHTML = list.map(d=>`
+    <tr class="rowitem" data-comune="${d.comune}">
+      <td>${titleCase(d.comune)}<span class="prov-tag" style="background:${provColor(d.provincia)}22;color:${provColor(d.provincia)}">${d.provincia}</span></td>
+      <td class="num">${d.y2526}</td><td class="num">${d.y2627}</td><td class="num">${d.tot}</td>
+      <td class="barcell"><div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,(d[metric]/maxV)*100)}%;background:${provColor(d.provincia)}"></div></div></td>
+    </tr>`).join('');
+  document.getElementById('rankSub').textContent = 'ordinata per ' + ({y2526:'2025/26', y2627:'2026/27', tot:'totale'})[metric];
+  document.querySelectorAll('tr.rowitem').forEach(r=>{
+    r.addEventListener('click', ()=> selectComune(r.dataset.comune, true));
+    if(r.dataset.comune===selected) r.classList.add('selected');
+  });
+}
+
+document.getElementById('yearToggle').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  metric = b.dataset.m;
+  [...document.getElementById('yearToggle').children].forEach(c=>c.classList.toggle('active', c===b));
+  updateRadii();
+  renderRanking();
+});
+
+document.getElementById('searchInput').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  Object.entries(markers).forEach(([name, m])=>{
+    const ok = !q || name.toLowerCase().includes(q);
+    m.setStyle({ fillOpacity: ok? .82 : .12, opacity: ok? 1 : .2 });
+  });
+  document.querySelectorAll('tr.rowitem').forEach(r=>{
+    r.style.opacity = (!q || r.dataset.comune.toLowerCase().includes(q)) ? '1' : '.25';
+  });
+});
+</script>
+</body>
+</html>
