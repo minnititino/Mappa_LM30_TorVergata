@@ -205,6 +205,16 @@ const COTRAL_ROUTES = [
   {
     nome: 'Genzano di Roma (Piazza Frasconi) → Tor Vergata',
     coords: [[41.70734,12.68873],[41.70938,12.68604],[41.71683,12.68425],[41.71816,12.67905],[41.72213,12.67764],[41.72113,12.67256],[41.72438,12.66335],[41.76592,12.61746],[41.8088,12.57608],[41.81416,12.57506],[41.83832,12.59077],[41.85149,12.59729],[41.85178,12.60057],[41.84799,12.61094],[41.84991,12.60824],[41.85262,12.6081],[41.85574,12.61472],[41.8556,12.61695],[41.85417,12.61751]]
+  },
+  {
+    nome: 'Grottaferrata (Squarciarelli) → Anagnina',
+    vettore: 'cotral',
+    coords: [[41.78289,12.68169],[41.78357,12.68038],[41.79176,12.68289],[41.79167,12.67461],[41.79385,12.66818],[41.7938,12.66322],[41.79736,12.65766],[41.79699,12.65256],[41.80309,12.64094],[41.80404,12.63598],[41.82873,12.59932],[41.83591,12.5923],[41.83952,12.59187],[41.84119,12.58671],[41.84386,12.58924],[41.84525,12.58612],[41.84419,12.5877],[41.84323,12.58611],[41.84281,12.58686]]
+  },
+  {
+    nome: 'Anagnina → Tor Vergata (linea ATAC 046)',
+    vettore: 'atac',
+    coords: [[41.84281,12.58686],[41.84433,12.58778],[41.84558,12.58621],[41.84657,12.59134],[41.85169,12.59067],[41.84663,12.5903],[41.84645,12.59127],[41.84809,12.59159],[41.85427,12.5903],[41.85838,12.59137],[41.85685,12.59777],[41.86572,12.59888],[41.86391,12.60112],[41.86491,12.60278],[41.86457,12.60993],[41.86302,12.61334],[41.86231,12.62695],[41.85979,12.62783],[41.8569,12.62557],[41.85109,12.62586],[41.85096,12.6204],[41.85417,12.61751]]
   }
 ];
 
@@ -1339,16 +1349,21 @@ function initMap(){
   }).addTo(map);
   L.control.scale({ imperial:false }).addTo(map);
 
+  const VETTORE_STYLE = {
+    cotral: { casing:'#0a3d91', line:'#2f7dff', label:'Cotral' },
+    atac:   { casing:'#8c1010', line:'#ff3b3b', label:'ATAC' }
+  };
   COTRAL_ROUTES.forEach(r=>{
+    const style = VETTORE_STYLE[r.vettore || 'cotral'];
     const casing = L.polyline(r.coords, {
-      color: '#0a3d91', weight: 6.5, opacity: 0.55,
+      color: style.casing, weight: 6.5, opacity: 0.55,
       lineCap: 'round', lineJoin: 'round', interactive: false
     }).addTo(map);
     const line = L.polyline(r.coords, {
-      color: '#2f7dff', weight: 4, opacity: 0.95, dashArray: '10,8',
+      color: style.line, weight: 4, opacity: 0.95, dashArray: '10,8',
       lineCap: 'round', lineJoin: 'round', interactive: true
     }).addTo(map);
-    line.bindTooltip(`Linea Cotral · ${r.nome}`, { sticky:true });
+    line.bindTooltip(`Linea ${style.label} · ${r.nome}`, { sticky:true });
   });
 
   clusterGroup = L.markerClusterGroup({
@@ -1395,7 +1410,8 @@ function initMap(){
       <div class="lg-row"><span class="swatch" style="background:${provColor('Altro')}"></span>Fuori regione</div>
       <div class="lg-row"><span class="swatch" style="background:${cssVar('--cluster')}"></span>Più scuole (zoom per separarle)</div>
       <div class="lg-row">★ Dipartimento di Fisica</div>
-      <div class="lg-row"><span class="swatch" style="background:#2f7dff"></span>Linee Cotral (esempio)</div>`;
+      <div class="lg-row"><span class="swatch" style="background:#2f7dff"></span>Linee Cotral (esempio)</div>
+      <div class="lg-row"><span class="swatch" style="background:#ff3b3b"></span>Linea ATAC 046 (Anagnina → Tor Vergata)</div>`;
     return div;
   };
   legend.addTo(map);
