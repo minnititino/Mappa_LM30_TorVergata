@@ -276,6 +276,14 @@ const METRO_LINES = [
   }
 ];
 
+const TRAIN_LINES = [
+  {
+    nome: 'FL5 — Regionale 12511 Civitavecchia → Roma Termini',
+    colore: '#6a3d9a',
+    coords: [[42.08845,11.79803],[42.08595,11.80303],[42.08221,11.80676],[42.07241,11.81077],[42.05753,11.82059],[42.04814,11.82318],[42.04006,11.83517],[42.03512,11.84617],[42.03433,11.85145],[42.03683,11.86784],[42.04129,11.88223],[42.03983,11.89904],[42.04141,11.9084],[42.03769,11.9236],[42.01278,11.99004],[41.98107,12.04511],[41.94503,12.09291],[41.93919,12.1032],[41.93349,12.12309],[41.93237,12.14914],[41.93015,12.16475],[41.92587,12.17941],[41.92025,12.19166],[41.91011,12.20615],[41.8723,12.24411],[41.86551,12.25347],[41.86738,12.28037],[41.86785,12.32239],[41.87355,12.36061],[41.87765,12.38032],[41.89584,12.42927],[41.89912,12.44713],[41.89795,12.45202],[41.89299,12.45744],[41.88055,12.45654],[41.8738,12.45847],[41.87248,12.45994],[41.87323,12.47996],[41.87096,12.49552],[41.87101,12.50408],[41.87596,12.51093],[41.87754,12.52056],[41.88077,12.52529],[41.88369,12.5266],[41.88765,12.52448],[41.8975,12.50602]]
+  }
+];
+
 let SCHOOLS = null, NON_INDICATO = null, map = null, metric = 'tot', selected = null;
 let clusterGroup = null;
 let entries = []; // {id, d, marker}
@@ -1436,6 +1444,18 @@ function initMap(){
     line.bindTooltip(m.nome, { sticky:true });
   });
 
+  TRAIN_LINES.forEach(t=>{
+    const casing = L.polyline(t.coords, {
+      color:'#101822', weight:6, opacity:0.5,
+      lineCap:'round', lineJoin:'round', interactive:false
+    }).addTo(map);
+    const line = L.polyline(t.coords, {
+      color: t.colore, weight:3, opacity:0.95, dashArray:'1,7',
+      lineCap:'round', lineJoin:'round', interactive:true
+    }).addTo(map);
+    line.bindTooltip(t.nome, { sticky:true });
+  });
+
   clusterGroup = L.markerClusterGroup({
     maxClusterRadius: 55,
     showCoverageOnHover: false,
@@ -1485,7 +1505,8 @@ function initMap(){
       <div class="lg-row"><span class="swatch" style="background:#f39200"></span>Metro A</div>
       <div class="lg-row"><span class="swatch" style="background:#e6007e"></span>Metro B</div>
       <div class="lg-row"><span class="swatch" style="background:#ff8fc7"></span>Metro B1</div>
-      <div class="lg-row"><span class="swatch" style="background:#2e9e44"></span>Metro C</div>`;
+      <div class="lg-row"><span class="swatch" style="background:#2e9e44"></span>Metro C</div>
+      <div class="lg-row"><span class="swatch" style="background:#6a3d9a"></span>Treno FL5 Civitavecchia-Roma</div>`;
     return div;
   };
   legend.addTo(map);
