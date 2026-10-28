@@ -185,6 +185,21 @@ function provColor(p){
 
 const DEPT = { lat: 41.8542, lon: 12.6177, name: 'Dipartimento di Fisica', sub: 'Tor Vergata e INFN · Via della Ricerca Scientifica, 1 · 00133 Roma' };
 
+const COTRAL_ROUTES = [
+  {
+    nome: 'Frosinone (Piazza Pertini) → Tor Vergata',
+    coords: [[41.62956,13.32702],[41.63064,13.32549],[41.62586,13.32337],[41.62102,13.31909],[41.62018,13.31143],[41.63314,13.27433],[41.64239,13.26085],[41.6507,13.24152],[41.68878,13.18387],[41.74785,13.06259],[41.74932,12.99297],[41.75817,12.9611],[41.77898,12.86682],[41.78186,12.85904],[41.80788,12.81223],[41.81736,12.79197],[41.81856,12.77075],[41.82696,12.7361],[41.8261,12.72108],[41.82919,12.69393],[41.82616,12.67242],[41.84957,12.60865],[41.85272,12.60822],[41.85574,12.61472],[41.8556,12.61695],[41.85417,12.61751]]
+  },
+  {
+    nome: 'Colleferro (Corso Garibaldi) → Tor Vergata',
+    coords: [[41.73094,13.00511],[41.73607,13.00991],[41.74326,13.00358],[41.74421,12.9989],[41.74816,12.99203],[41.75085,12.99396],[41.75004,12.98964],[41.75817,12.9611],[41.7798,12.86397],[41.80788,12.81223],[41.81736,12.79197],[41.81856,12.77075],[41.82696,12.7361],[41.8261,12.72108],[41.82919,12.69393],[41.82616,12.67242],[41.84957,12.60865],[41.85272,12.60822],[41.85574,12.61472],[41.8556,12.61695],[41.85417,12.61751]]
+  },
+  {
+    nome: 'Sora (Stazione FS) → Tor Vergata',
+    coords: [[41.71608,13.6182],[41.71716,13.62042],[41.72077,13.61699],[41.7037,13.58965],[41.70903,13.57805],[41.70001,13.56466],[41.70483,13.55838],[41.70425,13.55922],[41.69793,13.55341],[41.69132,13.54575],[41.68748,13.53693],[41.68138,13.52754],[41.6761,13.51161],[41.6759,13.50714],[41.67912,13.4965],[41.67959,13.48884],[41.67759,13.48143],[41.67681,13.4716],[41.66923,13.46425],[41.66677,13.45828],[41.66996,13.44272],[41.66659,13.42828],[41.66154,13.42311],[41.66081,13.42078],[41.66451,13.38161],[41.66364,13.37032],[41.66147,13.36985],[41.65728,13.34881],[41.65435,13.34254],[41.64448,13.33399],[41.63663,13.33033],[41.63311,13.32661],[41.62202,13.3204],[41.6208,13.31853],[41.62023,13.31074],[41.63355,13.27348],[41.64227,13.26108],[41.6507,13.24152],[41.68878,13.18387],[41.74785,13.06259],[41.74932,12.99297],[41.75817,12.9611],[41.77898,12.86682],[41.78186,12.85904],[41.80788,12.81223],[41.81736,12.79197],[41.81856,12.77075],[41.82696,12.7361],[41.8261,12.72108],[41.82919,12.69393],[41.82616,12.67242],[41.84957,12.60865],[41.85272,12.60822],[41.85574,12.61472],[41.8556,12.61695],[41.85417,12.61751]]
+  }
+];
+
 let SCHOOLS = null, NON_INDICATO = null, map = null, metric = 'tot', selected = null;
 let clusterGroup = null;
 let entries = []; // {id, d, marker}
@@ -1316,6 +1331,18 @@ function initMap(){
   }).addTo(map);
   L.control.scale({ imperial:false }).addTo(map);
 
+  COTRAL_ROUTES.forEach(r=>{
+    const casing = L.polyline(r.coords, {
+      color: '#0a3d91', weight: 6.5, opacity: 0.55,
+      lineCap: 'round', lineJoin: 'round', interactive: false
+    }).addTo(map);
+    const line = L.polyline(r.coords, {
+      color: '#2f7dff', weight: 4, opacity: 0.95, dashArray: '10,8',
+      lineCap: 'round', lineJoin: 'round', interactive: true
+    }).addTo(map);
+    line.bindTooltip(`Linea Cotral · ${r.nome}`, { sticky:true });
+  });
+
   clusterGroup = L.markerClusterGroup({
     maxClusterRadius: 55,
     showCoverageOnHover: false,
@@ -1359,7 +1386,8 @@ function initMap(){
       <div class="lg-row"><span class="swatch" style="background:${provColor('Latina')}"></span>Provincia di Latina</div>
       <div class="lg-row"><span class="swatch" style="background:${provColor('Altro')}"></span>Fuori regione</div>
       <div class="lg-row"><span class="swatch" style="background:${cssVar('--cluster')}"></span>Più scuole (zoom per separarle)</div>
-      <div class="lg-row">★ Dipartimento di Fisica</div>`;
+      <div class="lg-row">★ Dipartimento di Fisica</div>
+      <div class="lg-row"><span class="swatch" style="background:#2f7dff"></span>Linee Cotral (esempio)</div>`;
     return div;
   };
   legend.addTo(map);
