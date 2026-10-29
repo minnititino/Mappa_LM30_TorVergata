@@ -86,6 +86,11 @@ h1.title em{ font-style: italic; color: var(--accent); }
 
 .maplegend{ background: rgba(13,34,48,.92); color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 11.5px; line-height:1.6; border:1px solid var(--panel-border); }
 .maplegend .lg-row{ display:flex; align-items:center; gap:6px; }
+.maplegend .lg-hint{ font-size:10.5px; color: var(--text-faint); margin-top:4px; }
+.maplegend .lg-toggle{ cursor:pointer; user-select:none; border-radius:4px; padding:1px 3px; margin:0 -3px; transition: background .15s, opacity .15s; }
+.maplegend .lg-toggle:hover{ background: rgba(255,255,255,.1); }
+.maplegend .lg-toggle.lg-off{ opacity:.4; }
+.maplegend .lg-toggle.lg-off .swatch{ filter: grayscale(1); }
 .scrollhint{ pointer-events:none; }
 
 .lowergrid{ display:grid; grid-template-columns: 1.15fr 1fr; gap:16px; margin-top:16px; }
@@ -286,6 +291,7 @@ const TRAIN_LINES = [
 
 let SCHOOLS = null, NON_INDICATO = null, map = null, metric = 'tot', selected = null;
 let clusterGroup = null;
+let TRANSPORT_LAYERS = {};
 let entries = []; // {id, d, marker}
 
 const SCHOOLS_EMBEDDED = {
@@ -1419,42 +1425,68 @@ function initMap(){
     cotral: { casing:'#0a3d91', line:'#2f7dff', label:'Cotral' },
     atac:   { casing:'#8c1010', line:'#ff3b3b', label:'ATAC' }
   };
+  const cotralGroup = L.layerGroup();
+  const atacGroup = L.layerGroup();
   COTRAL_ROUTES.forEach(r=>{
     const style = VETTORE_STYLE[r.vettore || 'cotral'];
+    const target = r.vettore === 'atac' ? atacGroup : cotralGroup;
     const casing = L.polyline(r.coords, {
       color: style.casing, weight: 6.5, opacity: 0.55,
       lineCap: 'round', lineJoin: 'round', interactive: false
-    }).addTo(map);
+    });
     const line = L.polyline(r.coords, {
       color: style.line, weight: 4, opacity: 0.95, dashArray: '10,8',
       lineCap: 'round', lineJoin: 'round', interactive: true
-    }).addTo(map);
+    });
     line.bindTooltip(`Linea ${style.label} · ${r.nome}`, { sticky:true });
+    casing.addTo(target);
+    line.addTo(target);
   });
 
+  const metroGroups = {};
   METRO_LINES.forEach(m=>{
+    const g = L.layerGroup();
     const casing = L.polyline(m.coords, {
       color:'#101822', weight:5.5, opacity:0.5,
       lineCap:'round', lineJoin:'round', interactive:false
-    }).addTo(map);
+    });
     const line = L.polyline(m.coords, {
       color: m.colore, weight:3, opacity:0.95,
       lineCap:'round', lineJoin:'round', interactive:true
-    }).addTo(map);
+    });
     line.bindTooltip(m.nome, { sticky:true });
+    casing.addTo(g);
+    line.addTo(g);
+    metroGroups[m.nome] = g;
   });
 
+  const trainGroups = {};
   TRAIN_LINES.forEach(t=>{
+    const g = L.layerGroup();
     const casing = L.polyline(t.coords, {
       color:'#101822', weight:6, opacity:0.5,
       lineCap:'round', lineJoin:'round', interactive:false
-    }).addTo(map);
+    });
     const line = L.polyline(t.coords, {
       color: t.colore, weight:3, opacity:0.95, dashArray:'1,7',
       lineCap:'round', lineJoin:'round', interactive:true
-    }).addTo(map);
+    });
     line.bindTooltip(t.nome, { sticky:true });
+    casing.addTo(g);
+    line.addTo(g);
+    trainGroups[t.nome] = g;
   });
+
+  TRANSPORT_LAYERS = {
+    cotral:   { group: cotralGroup, label: 'Linee Cotral (esempio)', color: '#2f7dff' },
+    atac:     { group: atacGroup, label: 'Linea ATAC 046 (Anagnina → Tor Vergata)', color: '#ff3b3b' },
+    metroA:   { group: metroGroups['Metro A'], label: 'Metro A', color: '#f39200' },
+    metroB:   { group: metroGroups['Metro B'], label: 'Metro B', color: '#e6007e' },
+    metroB1:  { group: metroGroups['Metro B1'], label: 'Metro B1', color: '#ff8fc7' },
+    metroC:   { group: metroGroups['Metro C'], label: 'Metro C', color: '#2e9e44' },
+    trainFL5: { group: trainGroups[TRAIN_LINES[0].nome], label: 'Treno FL5 Civitavecchia-Roma', color: '#6a3d9a' }
+  };
+  Object.values(TRANSPORT_LAYERS).forEach(t=> t.group.addTo(map));
 
   clusterGroup = L.markerClusterGroup({
     maxClusterRadius: 55,
@@ -1493,6 +1525,7 @@ function initMap(){
   const legend = L.control({position:'bottomleft'});
   legend.onAdd = function(){
     const div = L.DomUtil.create('div','maplegend');
+    const toggleRow = (key)=> `<div class="lg-row lg-toggle" data-layer="${key}" title="Clicca per mostrare/nascondere"><span class="swatch" style="background:${TRANSPORT_LAYERS[key].color}"></span>${TRANSPORT_LAYERS[key].label}</div>`;
     div.innerHTML = `
       <div class="lg-row"><span class="swatch" style="background:${provColor('Roma')}"></span>Provincia di Roma</div>
       <div class="lg-row"><span class="swatch" style="background:${provColor('Frosinone')}"></span>Provincia di Frosinone</div>
@@ -1500,13 +1533,28 @@ function initMap(){
       <div class="lg-row"><span class="swatch" style="background:${provColor('Altro')}"></span>Fuori regione</div>
       <div class="lg-row"><span class="swatch" style="background:${cssVar('--cluster')}"></span>Più scuole (zoom per separarle)</div>
       <div class="lg-row">★ Dipartimento di Fisica</div>
-      <div class="lg-row"><span class="swatch" style="background:#2f7dff"></span>Linee Cotral (esempio)</div>
-      <div class="lg-row"><span class="swatch" style="background:#ff3b3b"></span>Linea ATAC 046 (Anagnina → Tor Vergata)</div>
-      <div class="lg-row"><span class="swatch" style="background:#f39200"></span>Metro A</div>
-      <div class="lg-row"><span class="swatch" style="background:#e6007e"></span>Metro B</div>
-      <div class="lg-row"><span class="swatch" style="background:#ff8fc7"></span>Metro B1</div>
-      <div class="lg-row"><span class="swatch" style="background:#2e9e44"></span>Metro C</div>
-      <div class="lg-row"><span class="swatch" style="background:#6a3d9a"></span>Treno FL5 Civitavecchia-Roma</div>`;
+      <div class="lg-hint">Trasporti (clicca per mostrare/nascondere):</div>
+      ${toggleRow('cotral')}
+      ${toggleRow('atac')}
+      ${toggleRow('metroA')}
+      ${toggleRow('metroB')}
+      ${toggleRow('metroB1')}
+      ${toggleRow('metroC')}
+      ${toggleRow('trainFL5')}`;
+    L.DomEvent.disableClickPropagation(div);
+    div.querySelectorAll('.lg-toggle').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const key = row.getAttribute('data-layer');
+        const t = TRANSPORT_LAYERS[key];
+        if (map.hasLayer(t.group)) {
+          map.removeLayer(t.group);
+          row.classList.add('lg-off');
+        } else {
+          map.addLayer(t.group);
+          row.classList.remove('lg-off');
+        }
+      });
+    });
     return div;
   };
   legend.addTo(map);
